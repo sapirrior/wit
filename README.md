@@ -23,7 +23,13 @@ Meet **`wit`**—the ultimate high-fidelity context bridge between you and your 
 
 ## 🚀 Quick Start (60 Seconds)
 
-### 1. Grab Your Binary
+### 1. Automated Installer (Recommended)
+You can install `wit` interactively by executing:
+```bash
+curl -fsSL https://raw.githubusercontent.com/sapirrior/wit/main/install.sh | sh
+```
+
+### 2. Manual Download
 Download the pre-compiled static binary matching your operating system directly from our **[Releases Page](https://github.com/sapirrior/wit/releases)**:
 
 - 🐧 **Linux**: [wit-linux-amd64](https://github.com/sapirrior/wit/releases) | [wit-linux-arm64](https://github.com/sapirrior/wit/releases)
