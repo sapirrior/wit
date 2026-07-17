@@ -17,8 +17,25 @@ permissions:
 
 jobs:
   build:
-    name: Build and Release Binaries
+    name: Build Binaries
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: android
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+          - goos: windows
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
 
     steps:
       - name: Checkout repository
@@ -33,40 +50,44 @@ jobs:
       - name: Create build directory
         run: mkdir -p build
 
-      - name: Build for Linux AMD64
+      - name: Build Binary
         env:
           CGO_ENABLED: 0
-          GOOS: linux
-          GOARCH: amd64
-        run: go build -ldflags="-s -w -extldflags '-static'" -o build/wit-linux-amd64 cmd/wit/main.go
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          EXTENSION=""
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            EXTENSION=".exe"
+          fi
+          go build -ldflags="-s -w -extldflags '-static'" -o build/wit-${{ matrix.goos }}-${{ matrix.goarch }}${EXTENSION} cmd/wit/main.go
 
-      - name: Build for Android ARM64
-        env:
-          CGO_ENABLED: 0
-          GOOS: android
-          GOARCH: arm64
-        run: go build -ldflags="-s -w -extldflags '-static'" -o build/wit-android-arm64 cmd/wit/main.go
-
-      - name: Build for Windows AMD64
-        env:
-          CGO_ENABLED: 0
-          GOOS: windows
-          GOARCH: amd64
-        run: go build -ldflags="-s -w -extldflags '-static'" -o build/wit-windows-amd64.exe cmd/wit/main.go
-
-      - name: Upload Build Artifacts
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wit-binaries
+          name: wit-${{ matrix.goos }}-${{ matrix.goarch }}
           path: build/
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build
+          merge-multiple: true
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            build/wit-linux-amd64
-            build/wit-android-arm64
-            build/wit-windows-amd64.exe
+            build/wit-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

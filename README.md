@@ -23,8 +23,12 @@ Unlike standard code prompt makers, `wit` is designed as a context maker for **s
 You can download the latest standalone, statically linked binaries directly from the [GitHub Releases Page](https://github.com/sapirrior/wit/releases):
 
 - **Linux AMD64**: Download `wit-linux-amd64`
+- **Linux ARM64 (Raspberry Pi, etc.)**: Download `wit-linux-arm64`
 - **Android ARM64 (Termux, etc.)**: Download `wit-android-arm64`
+- **macOS AMD64 (Intel)**: Download `wit-darwin-amd64`
+- **macOS ARM64 (Apple Silicon)**: Download `wit-darwin-arm64`
 - **Windows AMD64**: Download `wit-windows-amd64.exe`
+- **Windows ARM64**: Download `wit-windows-arm64.exe`
 
 After downloading, make the binary executable and move it to your system path:
 ```bash
