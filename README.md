@@ -1,114 +1,92 @@
-# wit — AI-Native High-Fidelity File Context Maker
+# ✨ wit — AI-Native File Context Maker
 
-`wit` is a lightweight, zero-dependency, streaming-native utility built in Go. It enables developers and AI models to package directory trees into human-readable XML context maker files and reconstruct them byte-for-byte on demand.
+[![Build & Release](https://github.com/sapirrior/wit/actions/workflows/build.yml/badge.svg)](https://github.com/sapirrior/wit/actions)
+[![Go Version](https://img.shields.io/github/go-mod/go-version/sapirrior/wit)](https://golang.org)
+[![License](https://img.shields.io/github/license/sapirrior/wit)](LICENSE)
 
-Unlike standard code prompt makers, `wit` is designed as a context maker for **symmetrical round-trips**. You can snap a directory, feed the single XML context file to an AI, receive the modified XML back, and rebuild the exact directory structure automatically.
+Struggling to feed codebase context to AI models? Tired of manually copying and pasting changes back and forth?
 
----
-
-## Key Features
-
-- ⚡ **AI-Native & Symmetrical**: Perfect for exchanging complete codebases with AI assistants in a single message.
-- 📦 **100% Standalone**: Compiled as a static binary with CGO disabled. Zero dependencies.
-- 📥 **Streaming XML Engine**: Memory-efficient parsing of huge files via `xml.Decoder` and custom CDATA streaming writer.
-- 🛡️ **Path Traversal Protection**: Rebuilding verifies relative target directories to prevent directory traversal attacks.
-- 🔑 **SHA-1 Integrity**: Every file is validated using a SHA-1 checksum and size verification during rebuild.
-- 🙈 **Smart .gitignore Support**: Automatically walks subdirectories and respects nested `.gitignore` files recursively.
+Meet **`wit`**—the ultimate high-fidelity context bridge between you and your AI coding assistant. Symmetrically capture your entire directory in a single human-readable XML file, and restore modifications byte-for-byte in seconds. 🚀
 
 ---
 
-## Installation
+## 🌟 Why `wit`?
 
-### 1. Pre-compiled Binaries (Recommended)
-You can download the latest standalone, statically linked binaries directly from the [GitHub Releases Page](https://github.com/sapirrior/wit/releases):
+- Symmetrically package directories to exchange codebases with AI assistants in a single message.
+- Rebuild modifications made by AI assistants securely and automatically.
+- 100% standalone single-binary utility with zero dependencies.
+- Respects nested `.gitignore` files to keep archives clean.
+- Auto-checks file integrity via SHA-1 hashes and sizes.
+- Built-in path traversal safeguards to protect your filesystem.
 
-- **Linux AMD64**: Download `wit-linux-amd64`
-- **Linux ARM64 (Raspberry Pi, etc.)**: Download `wit-linux-arm64`
-- **Android ARM64 (Termux, etc.)**: Download `wit-android-arm64`
-- **macOS AMD64 (Intel)**: Download `wit-darwin-amd64`
-- **macOS ARM64 (Apple Silicon)**: Download `wit-darwin-arm64`
-- **Windows AMD64**: Download `wit-windows-amd64.exe`
-- **Windows ARM64**: Download `wit-windows-arm64.exe`
+---
 
-After downloading, make the binary executable and move it to your system path:
+## 🚀 Quick Start (60 Seconds)
+
+### 1. Grab Your Binary
+Download the pre-compiled static binary matching your operating system directly from our **[Releases Page](https://github.com/sapirrior/wit/releases)**:
+
+- 🐧 **Linux**: [wit-linux-amd64](https://github.com/sapirrior/wit/releases) | [wit-linux-arm64](https://github.com/sapirrior/wit/releases)
+- 🤖 **Android (Termux)**: [wit-android-arm64](https://github.com/sapirrior/wit/releases)
+- 🍎 **macOS**: [wit-darwin-arm64 (Apple Silicon)](https://github.com/sapirrior/wit/releases) | [wit-darwin-amd64 (Intel)](https://github.com/sapirrior/wit/releases)
+- 🪟 **Windows**: [wit-windows-amd64.exe](https://github.com/sapirrior/wit/releases) | [wit-windows-arm64.exe](https://github.com/sapirrior/wit/releases)
+
+On UNIX systems, make it executable and move it to your system PATH:
 ```bash
 chmod +x wit-linux-amd64
 mv wit-linux-amd64 /usr/local/bin/wit
 ```
 
-### 2. From Source
-Requires Go 1.20+:
+### 2. Capture a Directory (Snap)
 ```bash
-make
-```
-This builds a statically linked binary named `wit` in the root folder.
-
----
-
-## Usage
-
-### 1. Snapshot a Directory (Snap)
-Captures a directory tree into an XML archive.
-```bash
-# Symmetrical snap (defaults to snap if the target is a directory)
-wit <folder> [-m "optional message"] [-o <output_file>]
-
-# Or explicitly
-wit snap <folder> [-m "optional message"] [-o <output_file>]
-```
-- By default, it writes to `witFile.xml`.
-- If `witFile.xml` already exists, it auto-increments the output name to `witFile-n.xml`.
-
-### 2. Rebuild a Workspace (Grab)
-Reconstructs the directory tree from the snapshot XML.
-```bash
-wit grab <archive> [-o <destination_dir>]
+# Capture the 'src' directory into 'witFile.xml'
+wit src -m "My project context"
 ```
 
-### 3. View Snapshot Metadata (Meta)
-Prints the metadata and the full file tree structure stored inside the archive.
+### 3. Rebuild the Workspace (Grab)
 ```bash
-wit meta <archive>
-```
-
-### 4. View Commit Message (Msg)
-Displays the snapshot commit message saved in the XML header.
-```bash
-wit msg <archive>
+# Rebuild the project structure from the XML file
+wit grab witFile.xml -o my_restored_project
 ```
 
 ---
 
-## XML Archive Structure
+## 🛠️ Commands Guide
 
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<wit version="2.0" created="2026-07-17T11:06:45Z" root="my_project" file_count="4" message="My snapshot message">
-  <file path="src/main.go" sha1="4f8f411..." mode="0644" size="51"><![CDATA[package main ...]]></file>
-  <binary path="assets/image.png" sha1="6a71e2..." mode="0644" size="12" encoding="base64"><![CDATA[aGVsbG8gd29ybGQ=]]></binary>
-  <symlink path="lib/current" target="lib/v1.0" mode="0777"/>
-  <empty path="src/.gitkeep" mode="0644"/>
-</wit>
-```
+### 📦 `wit [folder] [-m "msg"] [-o output.xml]`
+> **Alias:** `wit snap`
 
----
+Walks through your directory tree, respects Gitignore rules, and packs all contents into a clean XML file.
+- **Example:** `wit my-app/ -m "Adding oauth support" -o my-app.xml`
 
-## Instructing AI to Generate Valid wit XML Context Files
+### 🏗️ `wit grab [archive.xml] [-o dest_folder]`
+Reconstructs the workspace directory structure from the archive XML.
+- **Example:** `wit grab my-app.xml -o rebuilt-app`
 
-When pair-programming or generating workspaces with an AI, you can copy-paste or link the [wit-skill](wit-skill/SKILL.md) instructions. Instruct the AI with the following system rules:
+### 🗺️ `wit meta [archive.xml]`
+Inspects the archive metadata (creation time, original root folder name, file count, and inner file list layout).
+- **Example:** `wit meta my-app.xml`
 
-1. **Output formatting**: Never wrap the XML blocks in additional markdown backticks if outputting directly to a `.xml` file.
-2. **Whitespace**: Make sure the AI places no line breaks or indentation spaces around the CDATA block edges. It must write:
-   `<file path="relative/path" ...><![CDATA[content]]></file>`
-3. **Escaping**: Make sure it splits the illegal sequence `]]>` using `]]]]><![CDATA[>`.
-4. **Integrity values**: The AI must compute valid `sha1` and `size` attributes for the files it modifies to ensure the `grab` client builds them successfully.
-
-> [!IMPORTANT]
-> Any deviation from these formatting constraints (such as incorrect SHA-1 digests, mismatched sizes, or extra formatting whitespace around CDATA blocks) will trigger a **fatal validation error** and immediately abort the workspace rebuild.
+### 💬 `wit msg [archive.xml]`
+Displays the custom commit/snapshot message embedded inside the XML.
+- **Example:** `wit msg my-app.xml`
 
 ---
 
-## License
+## 🤖 Guide: Pair Programming with AI
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+When working with an AI assistant (like ChatGPT, Gemini, or Claude), attach your generated `wit` XML file and feed it the following instructions:
+
+> **System Rules for AI Assistants:**
+> 1. You are modifying a project packaged via `wit`. Return the full updated XML archive matching the layout.
+> 2. **No formatting whitespace**: Write the `<file>` and `<binary>` boundaries flush with their inner CDATA blocks:
+>    `<file path="src/main.go" sha1="xxx" mode="0644" size="123"><![CDATA[content]]></file>`
+> 3. **Integrity Validation**: Compute the correct SHA-1 hash (lowercase hex) and size attributes for any file you add or modify.
+> 
+> *⚠️ Note: Any formatting deviations or mismatching hashes will fail validation checks and abort the rebuild.*
+
+---
+
+## 📄 License
+This project is open-source under the [MIT License](LICENSE).  
 Copyright © 2026 Nolan Stark.
