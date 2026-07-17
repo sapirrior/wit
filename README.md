@@ -26,7 +26,7 @@ Meet **`wit`**—the ultimate high-fidelity context bridge between you and your 
 ### 1. Automated Installer (Recommended)
 You can install `wit` interactively by executing:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sapirrior/wit/main/install.sh | sh
+curl -fsSLO https://raw.githubusercontent.com/sapirrior/wit/main/install.sh && sh install.sh && rm install.sh
 ```
 
 ### 2. Manual Download
