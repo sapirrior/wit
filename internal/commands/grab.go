@@ -117,13 +117,13 @@ func Grab(inXmlPath, outDirPath string) error {
 		}
 
 		if pathAttr == "" || modeAttr == "" {
-			fmt.Printf("  ! Malformed tag attributes: %s\n", pathAttr)
+			fmt.Printf("  ! malformed tag: %s\n", pathAttr)
 			errorCount++
 			continue
 		}
 
 		if !isPathSafe(pathAttr) {
-			fmt.Printf("  ! Path traversal: %s  (skipped)\n", pathAttr)
+			fmt.Printf("  ! unsafe path: %s\n", pathAttr)
 			skippedCount++
 			continue
 		}
@@ -131,7 +131,7 @@ func Grab(inXmlPath, outDirPath string) error {
 		fullDestPath := filepath.Join(absDestRoot, pathAttr)
 		parentDir := filepath.Dir(fullDestPath)
 		if err := os.MkdirAll(parentDir, 0777); err != nil {
-			fmt.Printf("  ! Cannot create dir for %s  (skipped)\n", pathAttr)
+			fmt.Printf("  ! mkdir error: %s\n", pathAttr)
 			errorCount++
 			skippedCount++
 			continue
@@ -213,7 +213,7 @@ func Grab(inXmlPath, outDirPath string) error {
 		if sizeAttr != "" {
 			expectedSize, _ := strconv.ParseInt(sizeAttr, 10, 64)
 			if expectedSize != int64(len(finalData)) {
-				fmt.Printf("  ! Size mismatch for %s: expected %d, got %d\n", pathAttr, expectedSize, len(finalData))
+				fmt.Printf("  ! size mismatch: %s\n", pathAttr)
 				integrityOk = false
 			}
 		}
@@ -223,7 +223,7 @@ func Grab(inXmlPath, outDirPath string) error {
 			h.Write(finalData)
 			actualHash := hex.EncodeToString(h.Sum(nil))
 			if sha1Attr != actualHash {
-				fmt.Printf("  ! SHA1 mismatch for %s: expected %s, got %s\n", pathAttr, sha1Attr, actualHash)
+				fmt.Printf("  ! hash mismatch: %s\n", pathAttr)
 				integrityOk = false
 			}
 		}
@@ -235,7 +235,7 @@ func Grab(inXmlPath, outDirPath string) error {
 
 		f, err := os.Create(fullDestPath)
 		if err != nil {
-			fmt.Printf("  ! Failed to write %s\n", pathAttr)
+			fmt.Printf("  ! write error: %s\n", pathAttr)
 			errorCount++
 			continue
 		}

@@ -12,7 +12,7 @@ import (
 func main() {
 	args := os.Args
 	if len(args) < 2 {
-		fmt.Fprintln(os.Stderr, "fatal: Error: Target path required. Use 'wit -h' for usage.")
+		fmt.Fprintln(os.Stderr, "error: target path required (use -h for help)")
 		os.Exit(1)
 	}
 
@@ -36,7 +36,7 @@ func main() {
 					out = args[i+1]
 					i++
 				} else {
-					fmt.Fprintln(os.Stderr, "fatal: Error: -o option requires an argument.")
+					fmt.Fprintln(os.Stderr, "error: -o requires an argument")
 					os.Exit(1)
 				}
 			} else if args[i] == "-m" {
@@ -44,26 +44,26 @@ func main() {
 					message = args[i+1]
 					i++
 				} else {
-					fmt.Fprintln(os.Stderr, "fatal: Error: -m option requires an argument.")
+					fmt.Fprintln(os.Stderr, "error: -m requires an argument")
 					os.Exit(1)
 				}
 			} else if strings.HasPrefix(args[i], "-") {
-				fmt.Fprintf(os.Stderr, "fatal: Error: Unknown option %s\n", args[i])
+				fmt.Fprintf(os.Stderr, "error: unknown option %s\n", args[i])
 				os.Exit(1)
 			} else {
 				if folder != "" {
-					fmt.Fprintf(os.Stderr, "fatal: Error: Multiple folders specified: %s and %s\n", folder, args[i])
+					fmt.Fprintf(os.Stderr, "error: multiple folders specified: %s and %s\n", folder, args[i])
 					os.Exit(1)
 				}
 				folder = args[i]
 			}
 		}
 		if folder == "" {
-			fmt.Fprintln(os.Stderr, "fatal: Error: Target folder required for snap.")
+			fmt.Fprintln(os.Stderr, "error: target folder required")
 			os.Exit(1)
 		}
 		if !fsutil.DirExists(folder) {
-			fmt.Fprintf(os.Stderr, "fatal: Error: Target '%s' is not a directory.\n", folder)
+			fmt.Fprintf(os.Stderr, "error: '%s' is not a directory\n", folder)
 			os.Exit(1)
 		}
 		if out == "" {
@@ -96,22 +96,22 @@ func main() {
 					outDir = args[i+1]
 					i++
 				} else {
-					fmt.Fprintln(os.Stderr, "fatal: Error: -o option requires an argument.")
+					fmt.Fprintln(os.Stderr, "error: -o requires an argument")
 					os.Exit(1)
 				}
 			} else if strings.HasPrefix(args[i], "-") {
-				fmt.Fprintf(os.Stderr, "fatal: Error: Unknown option %s\n", args[i])
+				fmt.Fprintf(os.Stderr, "error: unknown option %s\n", args[i])
 				os.Exit(1)
 			} else {
 				if archive != "" {
-					fmt.Fprintf(os.Stderr, "fatal: Error: Multiple archives specified: %s and %s\n", archive, args[i])
+					fmt.Fprintf(os.Stderr, "error: multiple archives specified: %s and %s\n", archive, args[i])
 					os.Exit(1)
 				}
 				archive = args[i]
 			}
 		}
 		if archive == "" {
-			fmt.Fprintln(os.Stderr, "fatal: Error: Target archive required for grab.")
+			fmt.Fprintln(os.Stderr, "error: target archive required for grab")
 			os.Exit(1)
 		}
 		if err := commands.Grab(archive, outDir); err != nil {
@@ -123,7 +123,7 @@ func main() {
 
 	if args[1] == "msg" {
 		if len(args) < 3 {
-			fmt.Fprintln(os.Stderr, "fatal: Error: Target archive required for msg.")
+			fmt.Fprintln(os.Stderr, "error: target archive required for msg")
 			os.Exit(1)
 		}
 		archive := args[2]
@@ -136,7 +136,7 @@ func main() {
 
 	if args[1] == "meta" {
 		if len(args) < 3 {
-			fmt.Fprintln(os.Stderr, "fatal: Error: Target archive required for meta.")
+			fmt.Fprintln(os.Stderr, "error: target archive required for meta")
 			os.Exit(1)
 		}
 		archive := args[2]
@@ -158,7 +158,7 @@ func main() {
 				out = args[i+1]
 				i++
 			} else {
-				fmt.Fprintln(os.Stderr, "fatal: Error: -o option requires an argument.")
+				fmt.Fprintln(os.Stderr, "error: -o requires an argument")
 				os.Exit(1)
 			}
 		} else if args[i] == "-m" {
@@ -166,15 +166,15 @@ func main() {
 				message = args[i+1]
 				i++
 			} else {
-				fmt.Fprintln(os.Stderr, "fatal: Error: -m option requires an argument.")
+				fmt.Fprintln(os.Stderr, "error: -m requires an argument")
 				os.Exit(1)
 			}
 		} else if strings.HasPrefix(args[i], "-") {
-			fmt.Fprintf(os.Stderr, "fatal: Error: Unknown option %s\n", args[i])
+			fmt.Fprintf(os.Stderr, "error: unknown option %s\n", args[i])
 			os.Exit(1)
 		} else {
 			if folder != "" {
-				fmt.Fprintf(os.Stderr, "fatal: Error: Multiple folders specified: %s and %s\n", folder, args[i])
+				fmt.Fprintf(os.Stderr, "error: multiple folders specified: %s and %s\n", folder, args[i])
 				os.Exit(1)
 			}
 			folder = args[i]
@@ -182,7 +182,7 @@ func main() {
 	}
 
 	if folder == "" {
-		fmt.Fprintln(os.Stderr, "fatal: Error: Target folder required.")
+		fmt.Fprintln(os.Stderr, "error: target folder required")
 		os.Exit(1)
 	}
 
@@ -206,7 +206,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		fmt.Fprintf(os.Stderr, "fatal: Error: Target folder '%s' does not exist or is not a directory.\n", folder)
+		fmt.Fprintf(os.Stderr, "error: '%s' does not exist or is not a directory\n", folder)
 		os.Exit(1)
 	}
 }

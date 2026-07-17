@@ -116,7 +116,7 @@ func Snap(dirPath, outPath, message string) error {
 	for _, item := range items {
 		info, err := os.Lstat(item.absPath)
 		if err != nil {
-			fmt.Printf("  ! skipped %s: stat failure\n", item.path)
+			fmt.Printf("  ! stat error: %s\n", item.path)
 			continue
 		}
 
@@ -139,14 +139,14 @@ func Snap(dirPath, outPath, message string) error {
 			} else {
 				hVal, err := fsutil.GetSHA1(item.absPath)
 				if err != nil {
-					fmt.Printf("  ! skipped %s: hash failure\n", item.path)
+					fmt.Printf("  ! hash error: %s\n", item.path)
 					continue
 				}
 
 				binary := fsutil.IsBinary(item.absPath)
 				data, err := os.ReadFile(item.absPath)
 				if err != nil {
-					fmt.Printf("  ! skipped %s: read failure\n", item.path)
+					fmt.Printf("  ! read error: %s\n", item.path)
 					continue
 				}
 
