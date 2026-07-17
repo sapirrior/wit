@@ -3,103 +3,93 @@ name: wit-skill
 description: Assists in generating, inspecting, and formatting valid, high-fidelity XML snapshot files for the wit CLI tool. Activate this skill when writing, validating, or editing a wit snapshot XML file.
 ---
 
-# wit-skill — Generating and Formatting Valid wit XML Files
+# wit-skill — Technical Specification & AI Generation Rules
 
-This skill guides AI models in reading and writing valid XML archives compatible with `wit`'s `grab` (rebuild) command. 
+Authoritative Repository: [github.com/sapirrior/wit](https://github.com/sapirrior/wit)  
+Raw Reference Docs: [raw.githubusercontent.com/sapirrior/wit/main/README.md](https://raw.githubusercontent.com/sapirrior/wit/main/README.md)
 
-## 1. The XML Schema
-
-Every `wit` snapshot file must be valid XML wrapped in a `<wit>` root element.
-
-### Root element: `<wit>`
-Attributes:
-- `version`: Always `"2.0"`.
-- `created`: UTC timestamp in ISO 8601 format (e.g., `2026-07-17T11:06:45Z`).
-- `root`: The base name of the original root directory.
-- `file_count`: Total number of entries (files, symlinks, empties).
-- `message`: (Optional) A custom commit/snapshot message.
-
-Example:
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<wit version="2.0" created="2026-07-17T11:06:45Z" root="my_project" file_count="4" message="My first snapshot">
-  <!-- Children tags sit here -->
-</wit>
-```
-
-### Children elements (Four exhaustive types):
-1. **Regular Text File (`<file>`)**:
-   Contains raw text data inside CDATA.
-   ```xml
-   <file path="src/main.c" sha1="a0f3d9b8..." mode="0644" size="182"><![CDATA[#include <stdio.h>
-int main() {
-  printf("Hello!");
-}]]></file>
-   ```
-2. **Binary File (`<binary>`)**:
-   Contains base64 encoded data inside CDATA. Must include `encoding="base64"`.
-   ```xml
-   <binary path="assets/logo.png" sha1="e23fa0b..." mode="0644" size="12" encoding="base64"><![CDATA[aGVsbG8gd29ybGQ=]]></binary>
-   ```
-3. **Symbolic Link (`<symlink>`)**:
-   Self-closing tag specifying target path.
-   ```xml
-   <symlink path="lib/current" target="lib/v1.0" mode="0777"/>
-   ```
-4. **Empty File (`<empty>`)**:
-   Self-closing tag indicating a zero-byte file.
-   ```xml
-   <empty path="src/.gitkeep" mode="0644"/>
-   ```
+This skill contains the rigorous technical specifications, schema rules, and parser boundaries required to generate valid, rebuilt-compatible `wit` XML archives.
 
 ---
 
-## 2. Formatting Rules & Constraints
+## 1. Symmetrical XML Schema Definition
 
-### ⚠️ CRITICAL: Whitespace around CDATA
-Do **NOT** write formatting whitespace (newlines or indentation spaces) between `<file>` / `<binary>` tag boundaries and their child CDATA blocks. 
-*   **CORRECT**: `<file ...><![CDATA[content]]></file>`
-*   **INCORRECT**: 
-    ```xml
-    <!-- INCORRECT: The newline and indentations will be read as file content -->
-    <file ...>
-      <![CDATA[content]]>
-    </file>
-    ```
+All archives must strictly conform to the following XML structure. Deviations in tag names, attributes, or casing will trigger parser validation errors.
+
+### Root Node: `<wit>`
+The root tag wrapping the file database.
+- **Attributes**:
+  - `version` (string): Must be exactly `"2.0"`.
+  - `created` (string): UTC timestamp formatted in ISO-8601/RFC3339 (`YYYY-MM-DDTHH:MM:SSZ`).
+  - `root` (string): POSIX directory name of the target root.
+  - `file_count` (int): Total count of child tags.
+  - `message` (string, optional): XML-escaped custom description message.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<wit version="2.0" created="2026-07-17T11:34:17Z" root="app" file_count="4" message="Technical Commit">
+  <!-- Children tags -->
+</wit>
+```
+
+### Children Nodes:
+1. **Regular Text File (`<file>`)**:
+   Contains file content in a CDATA wrapper.
+   - **Attributes**:
+     - `path` (string): Relative destination path using POSIX forward slashes (`/`).
+     - `sha1` (string): 40-character lowercase hex SHA-1 digest of the raw contents.
+     - `mode` (string): Octal string representing file permissions (e.g. `"0644"`, `"0755"`).
+     - `size` (int): Total byte count of the uncompressed, post-decoded content.
+   - **Casing**: `<file path="..." sha1="..." mode="..." size="...">`
+2. **Binary File (`<binary>`)**:
+   Contains base64 encoded data inside CDATA.
+   - **Attributes**: Same as `<file>` plus:
+     - `encoding` (string): Must be exactly `"base64"`.
+   - **Casing**: `<binary path="..." sha1="..." mode="..." size="..." encoding="base64">`
+3. **Symbolic Link (`<symlink>`)**:
+   A self-closing tag for symbolic links.
+   - **Attributes**:
+     - `path` (string): Destination path.
+     - `target` (string): Path the link points to.
+     - `mode` (string): Octal representation (usually `"0777"`).
+   - **Casing**: `<symlink path="..." target="..." mode="0777"/>`
+4. **Empty File (`<empty>`)**:
+   A self-closing tag for zero-byte files.
+   - **Attributes**:
+     - `path` (string): Destination path.
+     - `mode` (string): Octal representation.
+   - **Casing**: `<empty path="..." mode="0644"/>`
+
+---
+
+## 2. Formatting Constraints (Strict Parser Requirements)
+
+### ⚠️ Whitespace Sensitive CDATA
+Go's `xml.Decoder` captures all character data inside a node. Do **not** format XML layout with newlines or indents around CDATA blocks.
+- **Valid (100% correct)**:
+  ```xml
+  <file path="main.go" sha1="d39a3..." mode="0644" size="52"><![CDATA[package main
+func main() {}]]></file>
+  ```
+- **Invalid (will corrupt files with extra spaces/newlines)**:
+  ```xml
+  <file path="main.go" sha1="d39a3..." mode="0644" size="52">
+    <![CDATA[package main
+func main() {}]]>
+  </file>
+  ```
 
 ### CDATA Escaping Rule
-If a file's content contains the literal XML CDATA closer sequence `]]>`, split it across two CDATA blocks:
-```
-]]>  becomes  ]]]]><![CDATA[>
-```
-
-### Integrity Attributes
-- **`sha1`**: The lowercase 40-character SHA-1 hex digest of the **raw, post-decoded** file content.
-- **`size`**: The exact byte count of the **raw, post-decoded** file content.
-- **`mode`**: Octal permission string (e.g. `"0644"`, `"0755"`).
-- **`path`**: POSIX-style relative path with forward slashes (e.g. `src/main.go`).
+If a file's content contains the sequence `]]>`, you must escape it by splitting it across multiple CDATA blocks:
+- Sequence: `]]>`
+- Transformed: `]]]]><![CDATA[>`
 
 ---
 
-## 3. Generating wit XML Outline Files (Directory Layout Index)
+## 3. Generating wit XML Outlines (Metadata Indexing)
 
-A **wit XML Outline** is a lightweight version of a `wit` snapshot. It preserves the exact file metadata structure but omits the CDATA contents. This allows an AI to understand or propose a complete workspace layout without transferring large file payloads.
-
-### Outline Generation Schema
-When generating an outline, write empty, self-closing `<file>` and `<binary>` tags. Symmetrically, omit the inner CDATA block and content.
-
-Example Outline:
+To present a proposed workspace outline without transferring file bodies, generate self-closing elements omitting CDATA contents:
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<wit version="2.0" created="2026-07-17T11:16:20Z" root="my_project" file_count="4" message="Workspace Outline Map">
-  <!-- Files represented as self-closing tags containing only metadata -->
-  <file path="src/main.go" sha1="4f8f411ba188ec8f67efdc8b6ff9a177958f6141" mode="0644" size="1054"/>
-  <binary path="assets/logo.png" sha1="6a71e27a6f2b4ff95b9cdbb99a5e8484e55e51a8" mode="0644" size="14560"/>
-  <symlink path="lib/current" target="lib/v1.0" mode="0777"/>
-  <empty path="src/.gitkeep" mode="0644"/>
-</wit>
+<file path="src/main.go" sha1="4f8f411ba188ec8f67efdc8b6ff9a177958f6141" mode="0644" size="1054"/>
 ```
-
-### When to use Outlines:
-1. **Initial Workspace Proposals**: When proposing a new project structure, the AI should first present an outline to let the user review the file layout before generating all target files.
-2. **Context Summarization**: Use outlines when transmitting structural layout context of large codebases to save LLM context window tokens.
+The rebuilding client validates size and hash on files, so these outlines are strictly for context map exchange and cannot be rebuilt by the client directly until content is populated.
