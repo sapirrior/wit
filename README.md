@@ -91,6 +91,11 @@ When working with an AI assistant (like ChatGPT, Gemini, or Claude), attach your
 > 
 > *⚠️ Note: Any formatting deviations or mismatching hashes will fail validation checks and abort the rebuild.*
 
+
+> [!IMPORTANT]
+> 
+> I built wit because I wanted to give AI my entire codebase without uploading dozens of files or paying for larger context features. It turned into a portable workspace snapshot format that both developers and AI can understand.
+
 ---
 
 ## 📄 License
