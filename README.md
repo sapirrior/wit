@@ -19,7 +19,20 @@ Unlike standard code prompt makers, `wit` is designed as a context maker for **s
 
 ## Installation
 
-### From Source
+### 1. Pre-compiled Binaries (Recommended)
+You can download the latest standalone, statically linked binaries directly from the [GitHub Releases Page](https://github.com/sapirrior/wit/releases):
+
+- **Linux AMD64**: Download `wit-linux-amd64`
+- **Android ARM64 (Termux, etc.)**: Download `wit-android-arm64`
+- **Windows AMD64**: Download `wit-windows-amd64.exe`
+
+After downloading, make the binary executable and move it to your system path:
+```bash
+chmod +x wit-linux-amd64
+mv wit-linux-amd64 /usr/local/bin/wit
+```
+
+### 2. From Source
 Requires Go 1.20+:
 ```bash
 make
