@@ -1,0 +1,56 @@
+name: Build and Cross-Compile
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    name: Build Binaries
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.20'
+          cache: true
+
+      - name: Create build directory
+        run: mkdir -p build
+
+      - name: Build for Linux AMD64
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -ldflags="-s -w -extldflags '-static'" -o build/wit-linux-amd64 cmd/wit/main.go
+
+      - name: Build for Android ARM64
+        env:
+          CGO_ENABLED: 0
+          GOOS: android
+          GOARCH: arm64
+        run: go build -ldflags="-s -w -extldflags '-static'" -o build/wit-android-arm64 cmd/wit/main.go
+
+      - name: Build for Windows AMD64
+        env:
+          CGO_ENABLED: 0
+          GOOS: windows
+          GOARCH: amd64
+        run: go build -ldflags="-s -w -extldflags '-static'" -o build/wit-windows-amd64.exe cmd/wit/main.go
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wit-binaries
+          path: build/

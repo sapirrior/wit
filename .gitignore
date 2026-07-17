@@ -1,0 +1,6 @@
+/wit
+*.xml
+*.o
+.wit-snap.xml
+wit.xml
+test_rebuild/
