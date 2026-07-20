@@ -71,11 +71,15 @@ func List(inXmlPath string, longFormat bool) error {
 		}
 
 		if longFormat {
+			shortSha := sha1Attr
+			if len(shortSha) > 8 {
+				shortSha = shortSha[:8]
+			}
 			switch name {
 			case "file":
-				fmt.Printf("  [text]    %s  (size: %s, mode: %s, sha1: %s)\n", pathAttr, sizeAttr, modeAttr, sha1Attr)
+				fmt.Printf("  [text]    %s  (size: %s, mode: %s, sha1: %s)\n", pathAttr, sizeAttr, modeAttr, shortSha)
 			case "binary":
-				fmt.Printf("  [binary]  %s  (size: %s, mode: %s, sha1: %s)\n", pathAttr, sizeAttr, modeAttr, sha1Attr)
+				fmt.Printf("  [binary]  %s  (size: %s, mode: %s, sha1: %s)\n", pathAttr, sizeAttr, modeAttr, shortSha)
 			case "symlink":
 				fmt.Printf("  [symlink] %s  -> %s  (mode: %s)\n", pathAttr, targetAttr, modeAttr)
 			case "empty":
