@@ -294,6 +294,37 @@ func main() {
 		os.Exit(0)
 	}
 
+	if args[1] == "glance" {
+		var archive string
+		var identity string
+		for i := 2; i < len(args); i++ {
+			if args[i] == "-i" {
+				if i+1 < len(args) {
+					identity = args[i+1]
+					i++
+				} else {
+					fmt.Fprintln(os.Stderr, "error: -i requires an argument")
+					os.Exit(1)
+				}
+			} else {
+				if archive == "" {
+					archive = args[i]
+				} else if identity == "" {
+					identity = args[i]
+				}
+			}
+		}
+		if archive == "" || identity == "" {
+			fmt.Fprintln(os.Stderr, "error: target archive and identity hash required for glance")
+			os.Exit(1)
+		}
+		if err := commands.Glance(archive, identity); err != nil {
+			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+			os.Exit(1)
+		}
+		os.Exit(0)
+	}
+
 	if args[1] == "patch" {
 		if len(args) < 3 {
 			fmt.Fprintln(os.Stderr, "error: target archive required for patch")

@@ -71,15 +71,11 @@ func List(inXmlPath string, longFormat bool) error {
 		}
 
 		if longFormat {
-			shortId := identityAttr
-			if len(shortId) > 8 {
-				shortId = shortId[:8]
-			}
 			switch name {
 			case "file":
-				fmt.Printf("  [text]    %s  (size: %s, mode: %s, identity: %s)\n", pathAttr, sizeAttr, modeAttr, shortId)
+				fmt.Printf("  [text]    %s  (size: %s, mode: %s, identity: %s)\n", pathAttr, sizeAttr, modeAttr, identityAttr)
 			case "binary":
-				fmt.Printf("  [binary]  %s  (size: %s, mode: %s, identity: %s)\n", pathAttr, sizeAttr, modeAttr, shortId)
+				fmt.Printf("  [binary]  %s  (size: %s, mode: %s, identity: %s)\n", pathAttr, sizeAttr, modeAttr, identityAttr)
 			case "symlink":
 				fmt.Printf("  [symlink] %s  -> %s  (mode: %s)\n", pathAttr, targetAttr, modeAttr)
 			case "empty":

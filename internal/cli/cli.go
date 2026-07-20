@@ -17,6 +17,7 @@ func PrintHelp() {
 	fmt.Println("  wit verify <file.xml>                      # Verify integrity (hashes/sizes)")
 	fmt.Println("  wit diff <a.xml> <b.xml>                   # Diff two snapshots")
 	fmt.Println("  wit list <file.xml> [-l]                   # List file paths in archive")
+	fmt.Println("  wit glance <file.xml> <identity>           # Inspect a specific file's content and metadata")
 	fmt.Println("  wit patch <file.xml> [dir]                 # Apply only changed files")
 	fmt.Println("  wit msg <file.xml>                         # View snap message")
 	fmt.Println("  wit meta <file.xml>                        # View files & metadata")

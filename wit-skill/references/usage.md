@@ -54,27 +54,34 @@ Shows a unified diff (using Myers diff algorithm) of file modifications, additio
   - `1`: File not found or invalid XML.
 
 ### 5. `wit list <archive>` (File List Printer)
-Lists all file paths stored in the archive, one per line. Use `-l` for detailed list view. Supports `.zip` archives.
+Lists all file paths stored in the archive, one per line. Use `-l` for detailed list view (shows full `identity` hash). Supports `.zip` archives.
 - **Syntax**: `wit list <archive> [-l]`
 - **Exit Codes**:
   - `0`: Success.
   - `1`: File not found or invalid XML.
 
-### 6. `wit patch <archive> [dest_folder]` (Partial Workspace Application)
+### 6. `wit glance <archive> <identity>` (File Content Inspection)
+Inspects a specific file inside the archive by its identity SHA-1 hash. It displays its metadata (path, type, size, mode, identity) and prints its text content. Supports prefix matching (minimum 4 characters) and `.zip` archives.
+- **Syntax**: `wit glance <archive> <identity>` or `wit glance <archive> -i <identity>`
+- **Exit Codes**:
+  - `0`: Success.
+  - `1`: Archive not found, invalid XML, or identity hash not found.
+
+### 7. `wit patch <archive> [dest_folder]` (Partial Workspace Application)
 Applies only the changed or new files from the archive into the target folder, leaving identical files untouched. Supports `.zip` archives.
 - **Syntax**: `wit patch <archive> [dest_folder]`
 - **Exit Codes**:
   - `0`: Success.
   - `1`: File not found or write errors.
 
-### 7. `wit msg <archive>` (Message Extraction)
+### 8. `wit msg <archive>` (Message Extraction)
 Reads and displays the snapshot message embedded inside the archive's header.
 - **Syntax**: `wit msg <archive>`
 - **Exit Codes**:
   - `0`: Success.
   - `1`: File not found or invalid XML.
 
-### 8. `wit meta <archive>` (Metadata & Structure Viewer)
+### 9. `wit meta <archive>` (Metadata & Structure Viewer)
 Prints metadata info and lists all files packed within the archive.
 - **Syntax**: `wit meta <archive>`
 - **Output format**:
