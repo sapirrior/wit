@@ -49,7 +49,7 @@ func List(inXmlPath string, longFormat bool) error {
 			continue
 		}
 
-		var pathAttr, modeAttr, sizeAttr, targetAttr string
+		var pathAttr, modeAttr, sizeAttr, targetAttr, sha1Attr string
 		for _, attr := range se.Attr {
 			val := xmlio.UnescapeAttr(attr.Value)
 			switch attr.Name.Local {
@@ -61,6 +61,8 @@ func List(inXmlPath string, longFormat bool) error {
 				sizeAttr = val
 			case "target":
 				targetAttr = val
+			case "sha1":
+				sha1Attr = val
 			}
 		}
 
@@ -71,9 +73,9 @@ func List(inXmlPath string, longFormat bool) error {
 		if longFormat {
 			switch name {
 			case "file":
-				fmt.Printf("  [text]    %s  (size: %s, mode: %s)\n", pathAttr, sizeAttr, modeAttr)
+				fmt.Printf("  [text]    %s  (size: %s, mode: %s, sha1: %s)\n", pathAttr, sizeAttr, modeAttr, sha1Attr)
 			case "binary":
-				fmt.Printf("  [binary]  %s  (size: %s, mode: %s)\n", pathAttr, sizeAttr, modeAttr)
+				fmt.Printf("  [binary]  %s  (size: %s, mode: %s, sha1: %s)\n", pathAttr, sizeAttr, modeAttr, sha1Attr)
 			case "symlink":
 				fmt.Printf("  [symlink] %s  -> %s  (mode: %s)\n", pathAttr, targetAttr, modeAttr)
 			case "empty":
