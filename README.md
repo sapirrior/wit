@@ -45,14 +45,14 @@ mv wit-linux-amd64 /usr/local/bin/wit
 
 ### 2. Capture a Directory (Snap)
 ```bash
-# Capture the 'src' directory into 'witFile.xml'
+# Capture the 'src' directory into 'file.wit.xml'
 wit src -m "My project context"
 ```
 
 ### 3. Rebuild the Workspace (Grab)
 ```bash
 # Rebuild the project structure from the XML file
-wit grab witFile.xml -o my_restored_project
+wit grab file.wit.xml -o my_restored_project
 ```
 
 ---

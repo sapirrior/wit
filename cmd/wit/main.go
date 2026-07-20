@@ -130,11 +130,11 @@ func main() {
 		if out != "" {
 			out = enforceWitXmlExt(out)
 		} else {
-			out = "witFile.xml"
+			out = "file.wit.xml"
 			if _, err := os.Stat(out); err == nil {
 				n := 1
 				for {
-					candidate := fmt.Sprintf("witFile-%d.xml", n)
+					candidate := fmt.Sprintf("file-%d.wit.xml", n)
 					if _, err := os.Stat(candidate); os.IsNotExist(err) {
 						out = candidate
 						break
@@ -406,11 +406,11 @@ func main() {
 		if out != "" {
 			out = enforceWitXmlExt(out)
 		} else {
-			out = "witFile.xml"
+			out = "file.wit.xml"
 			if _, err := os.Stat(out); err == nil {
 				n := 1
 				for {
-					candidate := fmt.Sprintf("witFile-%d.xml", n)
+					candidate := fmt.Sprintf("file-%d.wit.xml", n)
 					if _, err := os.Stat(candidate); os.IsNotExist(err) {
 						out = candidate
 						break

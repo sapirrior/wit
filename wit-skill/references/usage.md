@@ -17,7 +17,7 @@ Explicitly packages a folder structure into an XML snapshot file.
 - **Fallback**: Running `wit <folder> [options]` also executes a snapshot if the target argument resolves to a valid directory.
 - **Parameters**:
   - `-m` (string): Snapshot message, written to the `<wit message="...">` attribute.
-  - `-o` (string): Custom destination path. Automatically appends `.wit.xml`. Defaults to `witFile.xml`.
+  - `-o` (string): Custom destination path. Automatically appends `.wit.xml`. Defaults to `file.wit.xml`.
   - `-c`: Compresses the snapshot output into `<name>.wit.xml.zip` containing the `.wit.xml`.
   - `--exclude <pattern>`: Excludes files matching the glob pattern (can be specified multiple times).
   - `--max-size <size>`: Ignores files exceeding the size limit (supports units like B, KB, MB, GB).
