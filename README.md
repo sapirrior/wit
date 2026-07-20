@@ -108,8 +108,8 @@ When working with an AI assistant (like ChatGPT, Gemini, or Claude), attach your
 > **System Rules for AI Assistants:**
 > 1. You are modifying a project packaged via `wit`. Return the full updated XML archive matching the layout.
 > 2. **No formatting whitespace**: Write the `<file>` and `<binary>` boundaries flush with their inner CDATA blocks:
->    `<file path="src/main.go" sha1="xxx" mode="0644" size="123"><![CDATA[content]]></file>`
-> 3. **Integrity Validation**: Compute the correct SHA-1 hash (lowercase hex) and size attributes for any file you add or modify.
+>    `<file path="src/main.go" identity="xxx" mode="0644" size="123"><![CDATA[content]]></file>`
+> 3. **Integrity Validation**: Compute the correct SHA-1 hash (lowercase hex) and size attributes for any file you add or modify, writing it to the `identity` and `size` attributes.
 > 
 > *⚠️ Note: Any formatting deviations or mismatching hashes will fail validation checks and abort the rebuild.*
 

@@ -197,12 +197,12 @@ func Snap(dirPath, outPath, message string, excludes []string, maxSize int64) er
 
 				if binary {
 					b64 := base64.StdEncoding.EncodeToString(data)
-					fmt.Fprintf(out, "  <binary path=\"%s\" sha1=\"%s\" mode=\"%s\" size=\"%d\" encoding=\"base64\">", escPath, hVal, modeStr, size)
+					fmt.Fprintf(out, "  <binary path=\"%s\" identity=\"%s\" mode=\"%s\" size=\"%d\" encoding=\"base64\">", escPath, hVal, modeStr, size)
 					xmlio.WriteCDATA(out, []byte(b64))
 					fmt.Fprintf(out, "</binary>\n")
 					binaryCount++
 				} else {
-					fmt.Fprintf(out, "  <file path=\"%s\" sha1=\"%s\" mode=\"%s\" size=\"%d\">", escPath, hVal, modeStr, size)
+					fmt.Fprintf(out, "  <file path=\"%s\" identity=\"%s\" mode=\"%s\" size=\"%d\">", escPath, hVal, modeStr, size)
 					xmlio.WriteCDATA(out, data)
 					fmt.Fprintf(out, "</file>\n")
 					textCount++

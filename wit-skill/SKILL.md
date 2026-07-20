@@ -37,15 +37,15 @@ The root tag wrapping the file database.
    Contains file content in a CDATA wrapper.
    - **Attributes**:
      - `path` (string): Relative destination path using POSIX forward slashes (`/`).
-     - `sha1` (string): 40-character lowercase hex SHA-1 digest of the raw contents.
+     - `identity` (string): 40-character lowercase hex SHA-1 digest of the raw contents (used as file content identity).
      - `mode` (string): Octal string representing file permissions (e.g. `"0644"`, `"0755"`).
      - `size` (int): Total byte count of the uncompressed, post-decoded content.
-   - **Casing**: `<file path="..." sha1="..." mode="..." size="...">`
+   - **Casing**: `<file path="..." identity="..." mode="..." size="...">`
 2. **Binary File (`<binary>`)**:
    Contains base64 encoded data inside CDATA.
    - **Attributes**: Same as `<file>` plus:
      - `encoding` (string): Must be exactly `"base64"`.
-   - **Casing**: `<binary path="..." sha1="..." mode="..." size="..." encoding="base64">`
+   - **Casing**: `<binary path="..." identity="..." mode="..." size="..." encoding="base64">`
 3. **Symbolic Link (`<symlink>`)**:
    A self-closing tag for symbolic links.
    - **Attributes**:
@@ -68,12 +68,12 @@ The root tag wrapping the file database.
 Go's `xml.Decoder` captures all character data inside a node. Do **not** format XML layout with newlines or indents around CDATA blocks.
 - **Valid (100% correct)**:
   ```xml
-  <file path="main.go" sha1="d39a3..." mode="0644" size="52"><![CDATA[package main
+  <file path="main.go" identity="d39a3..." mode="0644" size="52"><![CDATA[package main
 func main() {}]]></file>
   ```
 - **Invalid (will corrupt files with extra spaces/newlines)**:
   ```xml
-  <file path="main.go" sha1="d39a3..." mode="0644" size="52">
+  <file path="main.go" identity="d39a3..." mode="0644" size="52">
     <![CDATA[package main
 func main() {}]]>
   </file>
@@ -90,6 +90,6 @@ If a file's content contains the sequence `]]>`, you must escape it by splitting
 
 To present a proposed workspace outline without transferring file bodies, generate self-closing elements omitting CDATA contents:
 ```xml
-<file path="src/main.go" sha1="4f8f411ba188ec8f67efdc8b6ff9a177958f6141" mode="0644" size="1054"/>
+<file path="src/main.go" identity="4f8f411ba188ec8f67efdc8b6ff9a177958f6141" mode="0644" size="1054"/>
 ```
 The rebuilding client validates size and hash on files, so these outlines are strictly for context map exchange and cannot be rebuilt by the client directly until content is populated.

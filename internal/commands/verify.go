@@ -87,14 +87,14 @@ func Verify(inXmlPath string) error {
 			continue
 		}
 
-		var pathAttr, sha1Attr, sizeAttr, encodingAttr string
+		var pathAttr, identityAttr, sizeAttr, encodingAttr string
 		for _, attr := range se.Attr {
 			val := xmlio.UnescapeAttr(attr.Value)
 			switch attr.Name.Local {
 			case "path":
 				pathAttr = val
-			case "sha1":
-				sha1Attr = val
+			case "identity":
+				identityAttr = val
 			case "size":
 				sizeAttr = val
 			case "encoding":
@@ -164,11 +164,11 @@ func Verify(inXmlPath string) error {
 			}
 		}
 
-		if sha1Attr != "" {
+		if identityAttr != "" {
 			h := sha1.New()
 			h.Write(finalData)
 			actualHash := hex.EncodeToString(h.Sum(nil))
-			if sha1Attr != actualHash {
+			if identityAttr != actualHash {
 				fmt.Printf("  ! hash mismatch: %s\n", pathAttr)
 				integrityOk = false
 			}

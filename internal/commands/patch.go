@@ -104,7 +104,7 @@ func Patch(inXmlPath, destDirPath string) error {
 			continue
 		}
 
-		var pathAttr, modeAttr, sha1Attr, encodingAttr, targetAttr string
+		var pathAttr, modeAttr, identityAttr, encodingAttr, targetAttr string
 		for _, attr := range se.Attr {
 			val := xmlio.UnescapeAttr(attr.Value)
 			switch attr.Name.Local {
@@ -112,8 +112,8 @@ func Patch(inXmlPath, destDirPath string) error {
 				pathAttr = val
 			case "mode":
 				modeAttr = val
-			case "sha1":
-				sha1Attr = val
+			case "identity":
+				identityAttr = val
 			case "encoding":
 				encodingAttr = val
 			case "target":
@@ -250,7 +250,7 @@ func Patch(inXmlPath, destDirPath string) error {
 		// Compare hash to see if unchanged
 		if exists && !info.IsDir() {
 			localHash, _ := fsutil.GetSHA1(fullDestPath)
-			if localHash == sha1Attr {
+			if localHash == identityAttr {
 				fmt.Printf("  = unchanged         %s\n", pathAttr)
 				unchangedCount++
 				continue

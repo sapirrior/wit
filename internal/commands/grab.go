@@ -121,7 +121,7 @@ func Grab(inXmlPath, outDirPath string) error {
 			continue
 		}
 
-		var pathAttr, modeAttr, sha1Attr, sizeAttr, encodingAttr, targetAttr string
+		var pathAttr, modeAttr, identityAttr, sizeAttr, encodingAttr, targetAttr string
 		for _, attr := range se.Attr {
 			val := xmlio.UnescapeAttr(attr.Value)
 			switch attr.Name.Local {
@@ -129,8 +129,8 @@ func Grab(inXmlPath, outDirPath string) error {
 				pathAttr = val
 			case "mode":
 				modeAttr = val
-			case "sha1":
-				sha1Attr = val
+			case "identity":
+				identityAttr = val
 			case "size":
 				sizeAttr = val
 			case "encoding":
@@ -242,11 +242,11 @@ func Grab(inXmlPath, outDirPath string) error {
 			}
 		}
 
-		if sha1Attr != "" {
+		if identityAttr != "" {
 			h := sha1.New()
 			h.Write(finalData)
 			actualHash := hex.EncodeToString(h.Sum(nil))
-			if sha1Attr != actualHash {
+			if identityAttr != actualHash {
 				fmt.Printf("\n  ! hash mismatch: %s\n", pathAttr)
 				integrityOk = false
 			}

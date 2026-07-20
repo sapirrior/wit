@@ -23,7 +23,7 @@ type ArchiveItem struct {
 	Name     string
 	Path     string
 	Mode     string
-	Sha1     string
+	Identity string
 	Size     int64
 	Target   string
 	IsBinary bool
@@ -80,7 +80,7 @@ func parseArchiveMetadataOnly(inXmlPath string) (map[string]ArchiveItem, error) 
 			continue
 		}
 
-		var pathAttr, modeAttr, sha1Attr, sizeAttr, targetAttr string
+		var pathAttr, modeAttr, identityAttr, sizeAttr, targetAttr string
 		for _, attr := range se.Attr {
 			val := xmlio.UnescapeAttr(attr.Value)
 			switch attr.Name.Local {
@@ -88,8 +88,8 @@ func parseArchiveMetadataOnly(inXmlPath string) (map[string]ArchiveItem, error) 
 				pathAttr = val
 			case "mode":
 				modeAttr = val
-			case "sha1":
-				sha1Attr = val
+			case "identity":
+				identityAttr = val
 			case "size":
 				sizeAttr = val
 			case "target":
@@ -105,7 +105,7 @@ func parseArchiveMetadataOnly(inXmlPath string) (map[string]ArchiveItem, error) 
 			Name:     name,
 			Path:     pathAttr,
 			Mode:     modeAttr,
-			Sha1:     sha1Attr,
+			Identity: identityAttr,
 			Target:   targetAttr,
 			IsBinary: (name == "binary"),
 		}
@@ -237,7 +237,7 @@ func Diff(archiveAPath, archiveBPath string) error {
 	for path := range bItems {
 		if _, exists := aItems[path]; !exists {
 			added = append(added, path)
-		} else if aItems[path].Sha1 != bItems[path].Sha1 || aItems[path].Name != bItems[path].Name || aItems[path].Target != bItems[path].Target {
+		} else if aItems[path].Identity != bItems[path].Identity || aItems[path].Name != bItems[path].Name || aItems[path].Target != bItems[path].Target {
 			modified = append(modified, path)
 			modifiedPathsMap[path] = true
 		}
