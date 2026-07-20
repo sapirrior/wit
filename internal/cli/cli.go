@@ -2,7 +2,7 @@ package cli
 
 import "fmt"
 
-const Version = "3.0.0"
+const Version = "3.0.2"
 
 func PrintVersion() {
 	fmt.Printf("wit v%s\n", Version)

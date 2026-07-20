@@ -84,7 +84,7 @@ Shows a unified diff (using Myers diff algorithm) of file changes, additions, re
 - **Example:** `wit diff before.wit.xml after.wit.xml`
 
 ### 📃 `wit list [archive] [-l]`
-Lists all file paths stored in the archive, one per line. Use `-l` for detailed list view (shows full `identity` hash). Supports `.zip` archives.
+Lists all files in the archive by showing their `identity` hash and relative path (e.g. `136a5a2f...  compress.go`). Use `-l` for detailed list view (shows type, size, and mode). Supports `.zip` archives.
 - **Example:** `wit list my-app.wit.xml.zip -l`
 
 ### 🔍 `wit glance [archive] [identity]`

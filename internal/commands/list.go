@@ -82,7 +82,11 @@ func List(inXmlPath string, longFormat bool) error {
 				fmt.Printf("  [empty]   %s  (mode: %s)\n", pathAttr, modeAttr)
 			}
 		} else {
-			fmt.Println(pathAttr)
+			idVal := identityAttr
+			if idVal == "" {
+				idVal = strings.Repeat("-", 40)
+			}
+			fmt.Printf("%s  %s\n", idVal, pathAttr)
 		}
 	}
 

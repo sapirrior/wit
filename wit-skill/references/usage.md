@@ -54,7 +54,7 @@ Shows a unified diff (using Myers diff algorithm) of file modifications, additio
   - `1`: File not found or invalid XML.
 
 ### 5. `wit list <archive>` (File List Printer)
-Lists all file paths stored in the archive, one per line. Use `-l` for detailed list view (shows full `identity` hash). Supports `.zip` archives.
+Lists all files in the archive by showing their `identity` hash and relative path (separated by space). Use `-l` for detailed list view (shows type, size, mode, and full identity). Supports `.zip` archives.
 - **Syntax**: `wit list <archive> [-l]`
 - **Exit Codes**:
   - `0`: Success.
