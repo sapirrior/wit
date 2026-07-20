@@ -59,23 +59,45 @@ wit grab witFile.xml -o my_restored_project
 
 ## 🛠️ Commands Guide
 
-### 📦 `wit [folder] [-m "msg"] [-o output.xml]`
+### 📦 `wit [folder] [options]`
 > **Alias:** `wit snap`
 
 Walks through your directory tree, respects Gitignore rules, and packs all contents into a clean XML file.
-- **Example:** `wit my-app/ -m "Adding oauth support" -o my-app.xml`
+- Custom naming (`-o <name>`) automatically enforces the `.wit.xml` extension.
+- **Compression flag (`-c`):** Compresses the output XML into a `.wit.xml.zip` file containing the `.wit.xml` file.
+- **Exclusion flag (`--exclude <pattern>`):** Allows specifying glob patterns to skip (e.g. `*.log`, `node_modules/`). Can be specified multiple times.
+- **Max Size flag (`--max-size <size>`):** Skip files exceeding the size limit (e.g. `1MB`, `500KB`, `100B`).
+- **Example:** `wit my-app/ -m "Adding oauth support" -o my-app --exclude "*.log" --max-size 1MB -c`
 
-### 🏗️ `wit grab [archive.xml] [-o dest_folder]`
-Reconstructs the workspace directory structure from the archive XML.
-- **Example:** `wit grab my-app.xml -o rebuilt-app`
+### 🏗️ `wit grab [archive] [-o dest_folder]`
+Reconstructs the workspace directory structure from the archive. Automatically detects and decompresses `.zip` archives on the fly.
+- **Example:** `wit grab my-app.wit.xml.zip -o rebuilt-app`
 
-### 🗺️ `wit meta [archive.xml]`
-Inspects the archive metadata (creation time, original root folder name, file count, and inner file list layout).
-- **Example:** `wit meta my-app.xml`
+### ✅ `wit verify [archive]`
+Validates all SHA-1 hashes and sizes in the archive without rebuilding files. Supports `.zip` archives on the fly.
+- **Example:** `wit verify my-app.wit.xml.zip`
 
-### 💬 `wit msg [archive.xml]`
+### 🔀 `wit diff [archiveA] [archiveB]`
+Shows a unified diff (using Myers diff algorithm) of file changes, additions, removals, and content differences between two wit snapshots. Supports `.zip` archives.
+- **Memory Optimized**: Runs a two-pass streaming parse, holding only the metadata index in memory and streaming CDATA contents solely for modified files to maintain a minimal memory footprint.
+- **Smart Binary Diffing**: Automatically identifies image files (PNG, JPEG, GIF) and prints dimension changes (e.g. `image/png (800x600) -> image/png (1024x768)`) alongside file size comparisons for other binaries.
+- **Example:** `wit diff before.wit.xml after.wit.xml`
+
+### 📃 `wit list [archive] [-l]`
+Lists all file paths stored in the archive, one per line. Use `-l` for detailed list view. Supports `.zip` archives.
+- **Example:** `wit list my-app.wit.xml.zip -l`
+
+### 🩹 `wit patch [archive] [dest_folder]`
+Applies only the *changed or new* files from the archive into the target folder, keeping existing matching files untouched. Supports `.zip` archives.
+- **Example:** `wit patch after.wit.xml.zip ./my-project`
+
+### 🗺️ `wit meta [archive]`
+Inspects the archive metadata (creation time, original root folder name, file count, and message).
+- **Example:** `wit meta my-app.wit.xml`
+
+### 💬 `wit msg [archive]`
 Displays the custom commit/snapshot message embedded inside the XML.
-- **Example:** `wit msg my-app.xml`
+- **Example:** `wit msg my-app.wit.xml`
 
 ---
 

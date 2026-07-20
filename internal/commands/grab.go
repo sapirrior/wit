@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"wit/internal/compress"
+	"wit/internal/progress"
 	"wit/internal/xmlio"
 )
 
@@ -20,6 +22,17 @@ func isPathSafe(relPath string) bool {
 }
 
 func Grab(inXmlPath, outDirPath string) error {
+	var tempFilePath string
+	if strings.HasSuffix(inXmlPath, ".zip") {
+		extracted, err := compress.UnzipFirst(inXmlPath, os.TempDir())
+		if err != nil {
+			return fmt.Errorf("fatal: failed to extract zip archive: %s", err)
+		}
+		tempFilePath = extracted
+		defer os.Remove(tempFilePath)
+		inXmlPath = tempFilePath
+	}
+
 	xmlFile, err := os.Open(inXmlPath)
 	if err != nil {
 		return fmt.Errorf("fatal: %s not found", inXmlPath)
@@ -31,6 +44,7 @@ func Grab(inXmlPath, outDirPath string) error {
 	decoder := xml.NewDecoder(xmlFile)
 	var rootDirName string
 	var destRoot string
+	var fileCountVal string
 	witTagFound := false
 
 	// Scan first for <wit> element
@@ -44,6 +58,8 @@ func Grab(inXmlPath, outDirPath string) error {
 			for _, attr := range se.Attr {
 				if attr.Name.Local == "root" {
 					rootDirName = attr.Value
+				} else if attr.Name.Local == "file_count" {
+					fileCountVal = attr.Value
 				}
 			}
 			break
@@ -52,6 +68,11 @@ func Grab(inXmlPath, outDirPath string) error {
 
 	if !witTagFound {
 		return fmt.Errorf("fatal: Error: Invalid wit file format. Missing <wit> root element")
+	}
+
+	totalFiles := 0
+	if fileCountVal != "" {
+		totalFiles, _ = strconv.Atoi(fileCountVal)
 	}
 
 	if outDirPath != "" {
@@ -76,6 +97,9 @@ func Grab(inXmlPath, outDirPath string) error {
 	decoder = xml.NewDecoder(xmlFile)
 
 	builtCount, skippedCount, errorCount := 0, 0, 0
+
+	spinner := progress.NewSpinner()
+	spinner.Start("Rebuilding")
 
 	for {
 		t, err := decoder.Token()
@@ -116,14 +140,16 @@ func Grab(inXmlPath, outDirPath string) error {
 			}
 		}
 
+		spinner.Update(builtCount+skippedCount+errorCount+1, totalFiles, pathAttr)
+
 		if pathAttr == "" || modeAttr == "" {
-			fmt.Printf("  ! malformed tag: %s\n", pathAttr)
+			fmt.Printf("\n  ! malformed tag: %s\n", pathAttr)
 			errorCount++
 			continue
 		}
 
 		if !isPathSafe(pathAttr) {
-			fmt.Printf("  ! unsafe path: %s\n", pathAttr)
+			fmt.Printf("\n  ! unsafe path: %s\n", pathAttr)
 			skippedCount++
 			continue
 		}
@@ -131,7 +157,7 @@ func Grab(inXmlPath, outDirPath string) error {
 		fullDestPath := filepath.Join(absDestRoot, pathAttr)
 		parentDir := filepath.Dir(fullDestPath)
 		if err := os.MkdirAll(parentDir, 0777); err != nil {
-			fmt.Printf("  ! mkdir error: %s\n", pathAttr)
+			fmt.Printf("\n  ! mkdir error: %s\n", pathAttr)
 			errorCount++
 			skippedCount++
 			continue
@@ -145,10 +171,9 @@ func Grab(inXmlPath, outDirPath string) error {
 		if name == "symlink" {
 			_ = os.Remove(fullDestPath)
 			if err := os.Symlink(targetAttr, fullDestPath); err == nil {
-				fmt.Printf("  + symlink  %s  -> %s\n", pathAttr, targetAttr)
 				builtCount++
 			} else {
-				fmt.Printf("  ! Cannot create symlink %s\n", pathAttr)
+				fmt.Printf("\n  ! Cannot create symlink %s\n", pathAttr)
 				errorCount++
 			}
 			continue
@@ -159,10 +184,9 @@ func Grab(inXmlPath, outDirPath string) error {
 			if err == nil {
 				f.Close()
 				_ = os.Chmod(fullDestPath, os.FileMode(modeOctal))
-				fmt.Printf("  + empty    %s\n", pathAttr)
 				builtCount++
 			} else {
-				fmt.Printf("  ! Failed to write %s\n", pathAttr)
+				fmt.Printf("\n  ! Failed to write %s\n", pathAttr)
 				errorCount++
 			}
 			continue
@@ -185,7 +209,7 @@ func Grab(inXmlPath, outDirPath string) error {
 		}
 
 		if innerErr != nil {
-			fmt.Printf("  ! Unexpected error reading data for %s\n", pathAttr)
+			fmt.Printf("\n  ! Unexpected error reading data for %s\n", pathAttr)
 			errorCount++
 			continue
 		}
@@ -200,7 +224,7 @@ func Grab(inXmlPath, outDirPath string) error {
 			}, string(cdataBuf))
 			decoded, err := base64.StdEncoding.DecodeString(cleanB64)
 			if err != nil {
-				fmt.Printf("  ! Failed to decode base64 for %s\n", pathAttr)
+				fmt.Printf("\n  ! Failed to decode base64 for %s\n", pathAttr)
 				errorCount++
 				continue
 			}
@@ -213,7 +237,7 @@ func Grab(inXmlPath, outDirPath string) error {
 		if sizeAttr != "" {
 			expectedSize, _ := strconv.ParseInt(sizeAttr, 10, 64)
 			if expectedSize != int64(len(finalData)) {
-				fmt.Printf("  ! size mismatch: %s\n", pathAttr)
+				fmt.Printf("\n  ! size mismatch: %s\n", pathAttr)
 				integrityOk = false
 			}
 		}
@@ -223,7 +247,7 @@ func Grab(inXmlPath, outDirPath string) error {
 			h.Write(finalData)
 			actualHash := hex.EncodeToString(h.Sum(nil))
 			if sha1Attr != actualHash {
-				fmt.Printf("  ! hash mismatch: %s\n", pathAttr)
+				fmt.Printf("\n  ! hash mismatch: %s\n", pathAttr)
 				integrityOk = false
 			}
 		}
@@ -235,7 +259,7 @@ func Grab(inXmlPath, outDirPath string) error {
 
 		f, err := os.Create(fullDestPath)
 		if err != nil {
-			fmt.Printf("  ! write error: %s\n", pathAttr)
+			fmt.Printf("\n  ! write error: %s\n", pathAttr)
 			errorCount++
 			continue
 		}
@@ -244,17 +268,14 @@ func Grab(inXmlPath, outDirPath string) error {
 		_ = os.Chmod(fullDestPath, os.FileMode(modeOctal))
 
 		if err == nil {
-			if encodingAttr == "base64" {
-				fmt.Printf("  + binary   %s\n", pathAttr)
-			} else {
-				fmt.Printf("  + text     %s\n", pathAttr)
-			}
 			builtCount++
 		} else {
-			fmt.Printf("  ! Failed to write %s\n", pathAttr)
+			fmt.Printf("\n  ! Failed to write %s\n", pathAttr)
 			errorCount++
 		}
 	}
+
+	spinner.Stop()
 
 	fmt.Printf("\nBuild complete  %d created  %d skipped  %d errors\n", builtCount, skippedCount, errorCount)
 	if errorCount > 0 {

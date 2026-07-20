@@ -6,9 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 	"wit/internal/fsutil"
 	"wit/internal/gitignore"
+	"wit/internal/progress"
 	"wit/internal/xmlio"
 )
 
@@ -18,7 +20,33 @@ type PackedItem struct {
 	isSymlink bool
 }
 
-func walkDirSorted(dirPath string, gi *gitignore.GitignoreContext, rootPath string, skipped *int) ([]PackedItem, error) {
+func matchesExclude(relPath string, excludes []string) bool {
+	for _, pat := range excludes {
+		patClean := filepath.ToSlash(pat)
+		relClean := filepath.ToSlash(relPath)
+
+		if strings.HasSuffix(patClean, "/") {
+			dirPat := strings.TrimSuffix(patClean, "/")
+			if strings.HasPrefix(relClean, dirPat+"/") || relClean == dirPat || strings.Contains(relClean, "/"+dirPat+"/") {
+				return true
+			}
+		}
+
+		if m, _ := filepath.Match(patClean, relClean); m {
+			return true
+		}
+
+		parts := strings.Split(relClean, "/")
+		for _, part := range parts {
+			if m, _ := filepath.Match(patClean, part); m {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func walkDirSorted(dirPath string, gi *gitignore.GitignoreContext, rootPath string, skipped *int, excludes []string) ([]PackedItem, error) {
 	var items []PackedItem
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
@@ -50,15 +78,21 @@ func walkDirSorted(dirPath string, gi *gitignore.GitignoreContext, rootPath stri
 			continue
 		}
 
+		rel, _ := filepath.Rel(rootPath, fullPath)
+		relSlash := filepath.ToSlash(rel)
+		if matchesExclude(relSlash, excludes) {
+			*skipped++
+			continue
+		}
+
 		if isDir {
-			subItems, err := walkDirSorted(fullPath, gi, rootPath, skipped)
+			subItems, err := walkDirSorted(fullPath, gi, rootPath, skipped, excludes)
 			if err == nil {
 				items = append(items, subItems...)
 			}
 		} else {
-			rel, _ := filepath.Rel(rootPath, fullPath)
 			items = append(items, PackedItem{
-				path:      filepath.ToSlash(rel),
+				path:      relSlash,
 				absPath:   fullPath,
 				isSymlink: isSym,
 			})
@@ -67,7 +101,7 @@ func walkDirSorted(dirPath string, gi *gitignore.GitignoreContext, rootPath stri
 	return items, nil
 }
 
-func Snap(dirPath, outPath, message string) error {
+func Snap(dirPath, outPath, message string, excludes []string, maxSize int64) error {
 	absDir, err := filepath.Abs(dirPath)
 	if err != nil {
 		return err
@@ -85,19 +119,26 @@ func Snap(dirPath, outPath, message string) error {
 	gi.LoadAll(absDir)
 
 	skipped := 0
-	items, err := walkDirSorted(absDir, gi, absDir, &skipped)
+	items, err := walkDirSorted(absDir, gi, absDir, &skipped, excludes)
 	if err != nil {
 		return err
 	}
 
 	var totalBytes int64
+	var filteredItems []PackedItem
 	for _, item := range items {
 		if !item.isSymlink {
 			if info, err := os.Lstat(item.absPath); err == nil {
+				if maxSize > 0 && info.Size() > maxSize {
+					skipped++
+					continue
+				}
 				totalBytes += info.Size()
 			}
 		}
+		filteredItems = append(filteredItems, item)
 	}
+	items = filteredItems
 
 	fmt.Printf("  %d files  (%.2f MB)  %d skipped\n", len(items), float64(totalBytes)/(1024.0*1024.0), skipped)
 
@@ -109,14 +150,18 @@ func Snap(dirPath, outPath, message string) error {
 
 	timeStr := time.Now().UTC().Format("2006-01-02T15:04:05Z")
 	fmt.Fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-	fmt.Fprintf(out, "<wit version=\"2.0\" created=\"%s\" root=\"%s\" file_count=\"%d\" message=\"%s\">\n", timeStr, rootName, len(items), xmlio.EscapeAttr(message))
+	fmt.Fprintf(out, "<wit version=\"3.0\" created=\"%s\" root=\"%s\" file_count=\"%d\" message=\"%s\">\n", timeStr, rootName, len(items), xmlio.EscapeAttr(message))
 
 	textCount, binaryCount, emptyCount, symlinkCount := 0, 0, 0, 0
 
-	for _, item := range items {
+	spinner := progress.NewSpinner()
+	spinner.Start("Snapping")
+
+	for i, item := range items {
+		spinner.Update(i+1, len(items), item.path)
 		info, err := os.Lstat(item.absPath)
 		if err != nil {
-			fmt.Printf("  ! stat error: %s\n", item.path)
+			fmt.Printf("\n  ! stat error: %s\n", item.path)
 			continue
 		}
 
@@ -139,14 +184,14 @@ func Snap(dirPath, outPath, message string) error {
 			} else {
 				hVal, err := fsutil.GetSHA1(item.absPath)
 				if err != nil {
-					fmt.Printf("  ! hash error: %s\n", item.path)
+					fmt.Printf("\n  ! hash error: %s\n", item.path)
 					continue
 				}
 
 				binary := fsutil.IsBinary(item.absPath)
 				data, err := os.ReadFile(item.absPath)
 				if err != nil {
-					fmt.Printf("  ! read error: %s\n", item.path)
+					fmt.Printf("\n  ! read error: %s\n", item.path)
 					continue
 				}
 
@@ -165,6 +210,8 @@ func Snap(dirPath, outPath, message string) error {
 			}
 		}
 	}
+
+	spinner.Stop()
 
 	fmt.Fprintf(out, "</wit>\n")
 	fmt.Printf("  text:%d  binary:%d  empty:%d  symlinks:%d\n", textCount, binaryCount, emptyCount, symlinkCount)

@@ -19,7 +19,7 @@ All archives must strictly conform to the following XML structure. Deviations in
 ### Root Node: `<wit>`
 The root tag wrapping the file database.
 - **Attributes**:
-  - `version` (string): Must be exactly `"2.0"`.
+  - `version` (string): Must target the active major release (e.g. `"3.x"` or `"3.0.0"`).
   - `created` (string): UTC timestamp formatted in ISO-8601/RFC3339 (`YYYY-MM-DDTHH:MM:SSZ`).
   - `root` (string): POSIX directory name of the target root.
   - `file_count` (int): Total count of child tags.
@@ -27,7 +27,7 @@ The root tag wrapping the file database.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<wit version="2.0" created="2026-07-17T11:34:17Z" root="app" file_count="4" message="Technical Commit">
+<wit version="3.0" created="2026-07-17T11:34:17Z" root="app" file_count="4" message="Technical Commit">
   <!-- Children tags -->
 </wit>
 ```

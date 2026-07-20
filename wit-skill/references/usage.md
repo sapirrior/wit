@@ -13,17 +13,20 @@ The `wit` entrypoint routes commands based on the first argument (`args[1]`).
 
 ### 1. `wit snap <folder>` (Directory Packaging)
 Explicitly packages a folder structure into an XML snapshot file.
-- **Syntax**: `wit snap <folder> [-m "message"] [-o <output_file>]`
-- **Fallback**: Running `wit <folder>` also executes a snapshot if the target argument resolves to a valid directory.
+- **Syntax**: `wit snap <folder> [options]`
+- **Fallback**: Running `wit <folder> [options]` also executes a snapshot if the target argument resolves to a valid directory.
 - **Parameters**:
   - `-m` (string): Snapshot message, written to the `<wit message="...">` attribute.
-  - `-o` (string): Custom destination path. Defaults to `witFile.xml` (or `witFile-n.xml` if conflicts arise).
+  - `-o` (string): Custom destination path. Automatically appends `.wit.xml`. Defaults to `witFile.xml`.
+  - `-c`: Compresses the snapshot output into `<name>.wit.xml.zip` containing the `.wit.xml`.
+  - `--exclude <pattern>`: Excludes files matching the glob pattern (can be specified multiple times).
+  - `--max-size <size>`: Ignores files exceeding the size limit (supports units like B, KB, MB, GB).
 - **Exit Codes**:
   - `0`: Success.
-  - `1`: Target not found, not a directory, or file write failure.
+  - `1`: Target not found, not a directory, size limit parsing error, or file write failure.
 
 ### 2. `wit grab <archive>` (Workspace Reconstruction)
-Rebuilds a directory tree from an XML archive.
+Rebuilds a directory tree from an XML archive. Automatically detects and decompresses `.zip` archives.
 - **Syntax**: `wit grab <archive> [-o <destination_dir>]`
 - **Parameters**:
   - `-o` (string): Rebuild output directory. Defaults to the `root` attribute specified in the XML.
@@ -32,16 +35,46 @@ Rebuilds a directory tree from an XML archive.
   - Verifies computed SHA-1 and file size against the XML tags before writing.
 - **Exit Codes**:
   - `0`: Success (all files rebuilt, verified, and permissions applied).
-  - `1`: Size/SHA-1 mismatches, formatting exceptions, or target file creation failures.
+  - `1`: Size/SHA-1 mismatches, formatting exceptions, zip decompression errors, or target file creation failures.
 
-### 3. `wit msg <archive>` (Message Extraction)
+### 3. `wit verify <archive>` (Integrity Verification)
+Validates all SHA-1 hashes and sizes in the archive without rebuilding any files. Supports `.zip` archives.
+- **Syntax**: `wit verify <archive>`
+- **Exit Codes**:
+  - `0`: Success (all files matching).
+  - `1`: Integrity failure (hash or size mismatches, file reading errors).
+
+### 4. `wit diff <archiveA> <archiveB>` (Snapshot Differencing)
+Shows a unified diff (using Myers diff algorithm) of file modifications, additions, and removals between two wit snapshots. Supports `.zip` archives.
+- **Implementation**: Runs in a two-pass stream. Pass 1 reads only the tag attributes and skips CDATA blocks using `decoder.Skip()`. Pass 2 streams the file content for modified files only, reducing RAM footprint.
+- **Smart Binary Diff**: Detects registered image formats (PNG, JPEG, GIF) via the standard `image` library to print dimension changes, falling back to size comparison for other binaries.
+- **Syntax**: `wit diff <archiveA> <archiveB>`
+- **Exit Codes**:
+  - `0`: Success.
+  - `1`: File not found or invalid XML.
+
+### 5. `wit list <archive>` (File List Printer)
+Lists all file paths stored in the archive, one per line. Use `-l` for detailed list view. Supports `.zip` archives.
+- **Syntax**: `wit list <archive> [-l]`
+- **Exit Codes**:
+  - `0`: Success.
+  - `1`: File not found or invalid XML.
+
+### 6. `wit patch <archive> [dest_folder]` (Partial Workspace Application)
+Applies only the changed or new files from the archive into the target folder, leaving identical files untouched. Supports `.zip` archives.
+- **Syntax**: `wit patch <archive> [dest_folder]`
+- **Exit Codes**:
+  - `0`: Success.
+  - `1`: File not found or write errors.
+
+### 7. `wit msg <archive>` (Message Extraction)
 Reads and displays the snapshot message embedded inside the archive's header.
 - **Syntax**: `wit msg <archive>`
 - **Exit Codes**:
-  - `0`: Success (displays message or notes no message exists).
+  - `0`: Success.
   - `1`: File not found or invalid XML.
 
-### 4. `wit meta <archive>` (Metadata & Structure Viewer)
+### 8. `wit meta <archive>` (Metadata & Structure Viewer)
 Prints metadata info and lists all files packed within the archive.
 - **Syntax**: `wit meta <archive>`
 - **Output format**:
@@ -49,7 +82,7 @@ Prints metadata info and lists all files packed within the archive.
   Archive Metadata for: my_archive.xml
 
   Root Directory: app
-  Format Version: 2.0.1
+  Format Version: 3.0
   Created At:     2026-07-17T11:34:17Z
   File Count:     10
   Message:        Technical commit
