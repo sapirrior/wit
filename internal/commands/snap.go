@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 	"wit/internal/fsutil"
 	"wit/internal/gitignore"
@@ -25,6 +26,7 @@ func matchesExclude(relPath string, excludes []string) bool {
 		patClean := filepath.ToSlash(pat)
 		relClean := filepath.ToSlash(relPath)
 
+		// Handle directory-only excludes ending with /
 		if strings.HasSuffix(patClean, "/") {
 			dirPat := strings.TrimSuffix(patClean, "/")
 			if strings.HasPrefix(relClean, dirPat+"/") || relClean == dirPat || strings.Contains(relClean, "/"+dirPat+"/") {
@@ -32,15 +34,8 @@ func matchesExclude(relPath string, excludes []string) bool {
 			}
 		}
 
-		if m, _ := filepath.Match(patClean, relClean); m {
+		if gitignore.MatchPattern(patClean, relClean) {
 			return true
-		}
-
-		parts := strings.Split(relClean, "/")
-		for _, part := range parts {
-			if m, _ := filepath.Match(patClean, part); m {
-				return true
-			}
 		}
 	}
 	return false
@@ -101,6 +96,21 @@ func walkDirSorted(dirPath string, gi *gitignore.GitignoreContext, rootPath stri
 	return items, nil
 }
 
+type processedResult struct {
+	index        int
+	err          error
+	size         int64
+	hash         string
+	isBinary     bool
+	data         []byte
+	b64Data      string
+	empty        bool
+	modeStr      string
+	escPath      string
+	escTarget    string
+	isSymlink    bool
+}
+
 func Snap(dirPath, outPath, message string, excludes []string, maxSize int64) error {
 	absDir, err := filepath.Abs(dirPath)
 	if err != nil {
@@ -152,62 +162,116 @@ func Snap(dirPath, outPath, message string, excludes []string, maxSize int64) er
 	fmt.Fprintf(out, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 	fmt.Fprintf(out, "<wit version=\"3.0\" created=\"%s\" root=\"%s\" file_count=\"%d\" message=\"%s\">\n", timeStr, rootName, len(items), xmlio.EscapeAttr(message))
 
-	textCount, binaryCount, emptyCount, symlinkCount := 0, 0, 0, 0
+	// Concurrent file processing
+	numWorkers := 8
+	if numWorkers > len(items) {
+		numWorkers = len(items)
+	}
 
+	type workTask struct {
+		index int
+		item  PackedItem
+	}
+
+	tasks := make(chan workTask, len(items))
+	results := make([]processedResult, len(items))
+	var wg sync.WaitGroup
+
+	for w := 0; w < numWorkers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for task := range tasks {
+				res := processedResult{
+					index:   task.index,
+					escPath: xmlio.EscapeAttr(task.item.path),
+				}
+				info, err := os.Lstat(task.item.absPath)
+				if err != nil {
+					res.err = err
+					results[task.index] = res
+					continue
+				}
+
+				res.modeStr = fmt.Sprintf("0%o", info.Mode().Perm())
+
+				if task.item.isSymlink {
+					res.isSymlink = true
+					target, err := os.Readlink(task.item.absPath)
+					if err != nil {
+						target = ""
+					}
+					res.escTarget = xmlio.EscapeAttr(target)
+				} else {
+					size := info.Size()
+					res.size = size
+					if size == 0 {
+						res.empty = true
+					} else {
+						hVal, err := fsutil.GetSHA1(task.item.absPath)
+						if err != nil {
+							res.err = err
+							results[task.index] = res
+							continue
+						}
+						res.hash = hVal
+
+						binary := fsutil.IsBinary(task.item.absPath)
+						res.isBinary = binary
+
+						data, err := os.ReadFile(task.item.absPath)
+						if err != nil {
+							res.err = err
+							results[task.index] = res
+							continue
+						}
+
+						if binary {
+							res.b64Data = base64.StdEncoding.EncodeToString(data)
+						} else {
+							res.data = data
+						}
+					}
+				}
+				results[task.index] = res
+			}
+		}()
+	}
+
+	for i, item := range items {
+		tasks <- workTask{index: i, item: item}
+	}
+	close(tasks)
+	wg.Wait()
+
+	textCount, binaryCount, emptyCount, symlinkCount := 0, 0, 0, 0
 	spinner := progress.NewSpinner()
 	spinner.Start("Snapping")
 
 	for i, item := range items {
 		spinner.Update(i+1, len(items), item.path)
-		info, err := os.Lstat(item.absPath)
-		if err != nil {
-			fmt.Printf("\n  ! stat error: %s\n", item.path)
+		res := results[i]
+		if res.err != nil {
+			fmt.Printf("\n  ! error processing: %s - %v\n", item.path, res.err)
 			continue
 		}
 
-		modeStr := fmt.Sprintf("0%o", info.Mode().Perm())
-		escPath := xmlio.EscapeAttr(item.path)
-
-		if item.isSymlink {
-			target, err := os.Readlink(item.absPath)
-			if err != nil {
-				target = ""
-			}
-			escTarget := xmlio.EscapeAttr(target)
-			fmt.Fprintf(out, "  <symlink path=\"%s\" target=\"%s\" mode=\"%s\"/>\n", escPath, escTarget, modeStr)
+		if res.isSymlink {
+			fmt.Fprintf(out, "  <symlink path=\"%s\" target=\"%s\" mode=\"%s\"/>\n", res.escPath, res.escTarget, res.modeStr)
 			symlinkCount++
+		} else if res.empty {
+			fmt.Fprintf(out, "  <empty path=\"%s\" mode=\"%s\"/>\n", res.escPath, res.modeStr)
+			emptyCount++
+		} else if res.isBinary {
+			fmt.Fprintf(out, "  <binary path=\"%s\" identity=\"%s\" mode=\"%s\" size=\"%d\" encoding=\"base64\">", res.escPath, res.hash, res.modeStr, res.size)
+			xmlio.WriteCDATA(out, []byte(res.b64Data))
+			fmt.Fprintf(out, "</binary>\n")
+			binaryCount++
 		} else {
-			size := info.Size()
-			if size == 0 {
-				fmt.Fprintf(out, "  <empty path=\"%s\" mode=\"%s\"/>\n", escPath, modeStr)
-				emptyCount++
-			} else {
-				hVal, err := fsutil.GetSHA1(item.absPath)
-				if err != nil {
-					fmt.Printf("\n  ! hash error: %s\n", item.path)
-					continue
-				}
-
-				binary := fsutil.IsBinary(item.absPath)
-				data, err := os.ReadFile(item.absPath)
-				if err != nil {
-					fmt.Printf("\n  ! read error: %s\n", item.path)
-					continue
-				}
-
-				if binary {
-					b64 := base64.StdEncoding.EncodeToString(data)
-					fmt.Fprintf(out, "  <binary path=\"%s\" identity=\"%s\" mode=\"%s\" size=\"%d\" encoding=\"base64\">", escPath, hVal, modeStr, size)
-					xmlio.WriteCDATA(out, []byte(b64))
-					fmt.Fprintf(out, "</binary>\n")
-					binaryCount++
-				} else {
-					fmt.Fprintf(out, "  <file path=\"%s\" identity=\"%s\" mode=\"%s\" size=\"%d\">", escPath, hVal, modeStr, size)
-					xmlio.WriteCDATA(out, data)
-					fmt.Fprintf(out, "</file>\n")
-					textCount++
-				}
-			}
+			fmt.Fprintf(out, "  <file path=\"%s\" identity=\"%s\" mode=\"%s\" size=\"%d\">", res.escPath, res.hash, res.modeStr, res.size)
+			xmlio.WriteCDATA(out, res.data)
+			fmt.Fprintf(out, "</file>\n")
+			textCount++
 		}
 	}
 
@@ -224,3 +288,4 @@ func Snap(dirPath, outPath, message string, excludes []string, maxSize int64) er
 	fmt.Printf("Done  ->  %s  (%.2f MB)\n", filepath.Base(outPath), float64(outSize)/(1024.0*1024.0))
 	return nil
 }
+

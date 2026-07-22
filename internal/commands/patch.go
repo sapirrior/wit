@@ -14,7 +14,7 @@ import (
 	"wit/internal/xmlio"
 )
 
-func Patch(inXmlPath, destDirPath string) error {
+func Patch(inXmlPath, destDirPath string, interactive bool) error {
 	var tempFilePath string
 	if strings.HasSuffix(inXmlPath, ".zip") {
 		extracted, err := compress.UnzipFirst(inXmlPath, os.TempDir())
@@ -83,6 +83,7 @@ func Patch(inXmlPath, destDirPath string) error {
 	decoder = xml.NewDecoder(xmlFile)
 
 	createdCount, updatedCount, unchangedCount, errorCount := 0, 0, 0, 0
+	autoApply := !interactive
 
 	for {
 		t, err := decoder.Token()
@@ -152,6 +153,18 @@ func Patch(inXmlPath, destDirPath string) error {
 				}
 			}
 			if needsCreation {
+				if !autoApply {
+					ans, err := promptUser("Patch [symlink]", pathAttr)
+					if err != nil || ans == 'q' {
+						fmt.Println("Aborted.")
+						break
+					}
+					if ans == 'a' {
+						autoApply = true
+					} else if ans != 'y' {
+						continue
+					}
+				}
 				_ = os.Remove(fullDestPath)
 				parentDir := filepath.Dir(fullDestPath)
 				_ = os.MkdirAll(parentDir, 0777)
@@ -180,6 +193,18 @@ func Patch(inXmlPath, destDirPath string) error {
 				needsCreation = false
 			}
 			if needsCreation {
+				if !autoApply {
+					ans, err := promptUser("Patch [empty]", pathAttr)
+					if err != nil || ans == 'q' {
+						fmt.Println("Aborted.")
+						break
+					}
+					if ans == 'a' {
+						autoApply = true
+					} else if ans != 'y' {
+						continue
+					}
+				}
 				_ = os.Remove(fullDestPath)
 				parentDir := filepath.Dir(fullDestPath)
 				_ = os.MkdirAll(parentDir, 0777)
@@ -248,11 +273,29 @@ func Patch(inXmlPath, destDirPath string) error {
 		}
 
 		// Compare hash to see if unchanged
+		isUnchanged := false
 		if exists && !info.IsDir() {
 			localHash, _ := fsutil.GetSHA1(fullDestPath)
 			if localHash == identityAttr {
-				fmt.Printf("  = unchanged         %s\n", pathAttr)
-				unchangedCount++
+				isUnchanged = true
+			}
+		}
+
+		if isUnchanged {
+			fmt.Printf("  = unchanged         %s\n", pathAttr)
+			unchangedCount++
+			continue
+		}
+
+		if !autoApply {
+			ans, err := promptUser("Patch", pathAttr)
+			if err != nil || ans == 'q' {
+				fmt.Println("Aborted.")
+				break
+			}
+			if ans == 'a' {
+				autoApply = true
+			} else if ans != 'y' {
 				continue
 			}
 		}

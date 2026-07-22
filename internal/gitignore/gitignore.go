@@ -106,7 +106,7 @@ func (ctx *GitignoreContext) LoadAll(dirPath string) {
 	})
 }
 
-func matchPattern(pattern, relPath string) bool {
+func MatchPattern(pattern, relPath string) bool {
 	if strings.Contains(pattern, "**") {
 		if strings.HasPrefix(pattern, "**/") {
 			stem := pattern[3:]
@@ -172,7 +172,7 @@ func (ctx *GitignoreContext) IsIgnored(path string, isDir bool) bool {
 				hit = true
 			}
 		} else {
-			hit = matchPattern(rule.pattern, rel)
+			hit = MatchPattern(rule.pattern, rel)
 		}
 
 		if hit {

@@ -21,7 +21,24 @@ func isPathSafe(relPath string) bool {
 	return !strings.HasPrefix(cleaned, "..") && !filepath.IsAbs(cleaned)
 }
 
-func Grab(inXmlPath, outDirPath string) error {
+func promptUser(action, path string) (rune, error) {
+	fmt.Printf("%s '%s'? [y/n/a/q] (yes/no/all/quit): ", action, path)
+	var response string
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		if err.Error() == "unexpected newline" {
+			return 'n', nil
+		}
+		return 0, err
+	}
+	response = strings.ToLower(strings.TrimSpace(response))
+	if len(response) == 0 {
+		return 'n', nil
+	}
+	return rune(response[0]), nil
+}
+
+func Grab(inXmlPath, outDirPath string, interactive bool) error {
 	var tempFilePath string
 	if strings.HasSuffix(inXmlPath, ".zip") {
 		extracted, err := compress.UnzipFirst(inXmlPath, os.TempDir())
@@ -89,7 +106,7 @@ func Grab(inXmlPath, outDirPath string) error {
 	}
 	absDestRoot = filepath.ToSlash(absDestRoot)
 
-	if entries, err := os.ReadDir(absDestRoot); err == nil && len(entries) > 0 {
+	if entries, err := os.ReadDir(absDestRoot); err == nil && len(entries) > 0 && !interactive {
 		fmt.Printf("  Destination '%s' is not empty. Overwriting files.\n", destRoot)
 	}
 
@@ -97,9 +114,13 @@ func Grab(inXmlPath, outDirPath string) error {
 	decoder = xml.NewDecoder(xmlFile)
 
 	builtCount, skippedCount, errorCount := 0, 0, 0
+	autoApply := !interactive
 
-	spinner := progress.NewSpinner()
-	spinner.Start("Rebuilding")
+	var spinner *progress.Spinner
+	if autoApply {
+		spinner = progress.NewSpinner()
+		spinner.Start("Rebuilding")
+	}
 
 	for {
 		t, err := decoder.Token()
@@ -140,7 +161,9 @@ func Grab(inXmlPath, outDirPath string) error {
 			}
 		}
 
-		spinner.Update(builtCount+skippedCount+errorCount+1, totalFiles, pathAttr)
+		if spinner != nil {
+			spinner.Update(builtCount+skippedCount+errorCount+1, totalFiles, pathAttr)
+		}
 
 		if pathAttr == "" || modeAttr == "" {
 			fmt.Printf("\n  ! malformed tag: %s\n", pathAttr)
@@ -152,6 +175,25 @@ func Grab(inXmlPath, outDirPath string) error {
 			fmt.Printf("\n  ! unsafe path: %s\n", pathAttr)
 			skippedCount++
 			continue
+		}
+
+		if !autoApply {
+			ans, err := promptUser("Restore", pathAttr)
+			if err != nil || ans == 'q' {
+				fmt.Println("Aborted.")
+				break
+			}
+			if ans == 'a' {
+				autoApply = true
+				spinner = progress.NewSpinner()
+				spinner.Start("Rebuilding")
+			} else if ans != 'y' {
+				skippedCount++
+				if name == "file" || name == "binary" {
+					_ = decoder.Skip()
+				}
+				continue
+			}
 		}
 
 		fullDestPath := filepath.Join(absDestRoot, pathAttr)
@@ -275,7 +317,9 @@ func Grab(inXmlPath, outDirPath string) error {
 		}
 	}
 
-	spinner.Stop()
+	if spinner != nil {
+		spinner.Stop()
+	}
 
 	fmt.Printf("\nBuild complete  %d created  %d skipped  %d errors\n", builtCount, skippedCount, errorCount)
 	if errorCount > 0 {

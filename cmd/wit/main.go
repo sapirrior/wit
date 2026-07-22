@@ -189,6 +189,7 @@ func main() {
 	if args[1] == "grab" {
 		var archive string
 		var outDir string
+		interactive := false
 		for i := 2; i < len(args); i++ {
 			if args[i] == "-o" {
 				if i+1 < len(args) {
@@ -198,6 +199,8 @@ func main() {
 					fmt.Fprintln(os.Stderr, "error: -o requires an argument")
 					os.Exit(1)
 				}
+			} else if args[i] == "-i" || args[i] == "--interactive" {
+				interactive = true
 			} else if strings.HasPrefix(args[i], "-") {
 				fmt.Fprintf(os.Stderr, "error: unknown option %s\n", args[i])
 				os.Exit(1)
@@ -213,7 +216,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "error: target archive required for grab")
 			os.Exit(1)
 		}
-		if err := commands.Grab(archive, outDir); err != nil {
+		if err := commands.Grab(archive, outDir, interactive); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			os.Exit(1)
 		}
@@ -326,16 +329,34 @@ func main() {
 	}
 
 	if args[1] == "patch" {
-		if len(args) < 3 {
+		var archive string
+		var destDir string
+		interactive := false
+		for i := 2; i < len(args); i++ {
+			if args[i] == "-i" || args[i] == "--interactive" {
+				interactive = true
+			} else if strings.HasPrefix(args[i], "-") {
+				fmt.Fprintf(os.Stderr, "error: unknown option %s\n", args[i])
+				os.Exit(1)
+			} else {
+				if archive == "" {
+					archive = args[i]
+				} else if destDir == "" {
+					destDir = args[i]
+				} else {
+					fmt.Fprintf(os.Stderr, "error: multiple target paths specified for patch\n")
+					os.Exit(1)
+				}
+			}
+		}
+		if archive == "" {
 			fmt.Fprintln(os.Stderr, "error: target archive required for patch")
 			os.Exit(1)
 		}
-		archive := args[2]
-		destDir := "."
-		if len(args) >= 4 {
-			destDir = args[3]
+		if destDir == "" {
+			destDir = "."
 		}
-		if err := commands.Patch(archive, destDir); err != nil {
+		if err := commands.Patch(archive, destDir, interactive); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 			os.Exit(1)
 		}

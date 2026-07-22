@@ -65,13 +65,14 @@ wit grab file.wit.xml -o my_restored_project
 Walks through your directory tree, respects Gitignore rules, and packs all contents into a clean XML file.
 - Custom naming (`-o <name>`) automatically enforces the `.wit.xml` extension.
 - **Compression flag (`-c`):** Compresses the output XML into a `.wit.xml.zip` file containing the `.wit.xml` file.
-- **Exclusion flag (`--exclude <pattern>`):** Allows specifying glob patterns to skip (e.g. `*.log`, `node_modules/`). Can be specified multiple times.
+- **Exclusion flag (`--exclude <pattern>`):** Allows specifying glob patterns to skip (e.g. `*.log`, `node_modules/`, `**/*.tmp`). Supports double-star (`**`) recursive directory wildcards. Can be specified multiple times.
 - **Max Size flag (`--max-size <size>`):** Skip files exceeding the size limit (e.g. `1MB`, `500KB`, `100B`).
-- **Example:** `wit my-app/ -m "Adding oauth support" -o my-app --exclude "*.log" --max-size 1MB -c`
+- **Example:** `wit my-app/ -m "Adding oauth support" -o my-app --exclude "*.log" --exclude "**/temp/**" --max-size 1MB -c`
 
-### 🏗️ `wit grab [archive] [-o dest_folder]`
+### 🏗️ `wit grab [archive] [-o dest_folder] [-i]`
 Reconstructs the workspace directory structure from the archive. Automatically detects and decompresses `.zip` archives on the fly.
-- **Example:** `wit grab my-app.wit.xml.zip -o rebuilt-app`
+- **Interactive flag (`-i` or `--interactive`):** Prompt for approval `[y/n/a/q]` before writing each file.
+- **Example:** `wit grab my-app.wit.xml.zip -o rebuilt-app -i`
 
 ### ✅ `wit verify [archive]`
 Validates all SHA-1 hashes and sizes in the archive without rebuilding files. Supports `.zip` archives on the fly.
@@ -91,9 +92,10 @@ Lists all files in the archive by showing their `identity` hash and relative pat
 Inspects a specific file inside the archive by its identity SHA-1 hash (supports prefix matches, minimum 4 characters). Prints the file's metadata and its text content.
 - **Example:** `wit glance my-app.wit.xml.zip 136a5a2f` or `wit glance my-app.wit.xml.zip -i 136a5a2f`
 
-### 🩹 `wit patch [archive] [dest_folder]`
+### 🩹 `wit patch [archive] [dest_folder] [-i]`
 Applies only the *changed or new* files from the archive into the target folder, keeping existing matching files untouched. Supports `.zip` archives.
-- **Example:** `wit patch after.wit.xml.zip ./my-project`
+- **Interactive flag (`-i` or `--interactive`):** Prompt for approval `[y/n/a/q]` before writing each modified or new file.
+- **Example:** `wit patch after.wit.xml.zip ./my-project -i`
 
 ### 🗺️ `wit meta [archive]`
 Inspects the archive metadata (creation time, original root folder name, file count, and message).
